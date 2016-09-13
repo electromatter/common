@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "util.h"
+#include <common/util.h>
 
 static const char hex[] = "0123456789abcdef";
 

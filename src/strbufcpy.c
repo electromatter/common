@@ -1,6 +1,6 @@
 #include <string.h>
 
-#include "util.h"
+#include <common/util.h>
 
 int strbufcpy(char *dest, size_t destsize, const char *src)
 {

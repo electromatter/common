@@ -17,7 +17,7 @@
 
 #include <string.h>
 
-#include "sha1.h"
+#include <common/sha1.h>
 
 static inline uint32_t rol32(uint32_t val, int n)
 {

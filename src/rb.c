@@ -16,7 +16,7 @@
  */
 
 #include <stdlib.h>
-#include "rb.h"
+#include <common/rb.h>
 
 struct rbnode *rbsubfirst(struct rbnode *node)
 {

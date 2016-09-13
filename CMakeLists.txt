@@ -14,11 +14,10 @@ if(BUILD_MCP_BASE)
 	add_subdirectory("${MCP_BASE_PATH}")
 endif()
 
-include_directories("${MCP_BASE_PATH}/include")
+include_directories("${MCP_BASE_PATH}/include" "${PROJECT_SOURCE_DIR}/include")
 
 find_package(EV REQUIRED)
 
-include_directories(include/)
 add_library(common
 	src/fbuf_printf.c src/fbuf_temp.c src/hash.c src/heap.c
 	src/hexdump.c src/net.c src/rb.c src/sha1.c src/sock.c

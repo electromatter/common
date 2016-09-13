@@ -12,7 +12,7 @@
 
 #include <mcp_base/fbuf.h>
 
-#include "net.h"
+#include <common/net.h>
 
 #define DEFAULT_SIZE		(64*1024)
 

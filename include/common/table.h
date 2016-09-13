@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "hash.h"
+#include <common/hash.h>
 
 /* Call table_update if entry's hash code possibly changes to reinsert
  * into table. */

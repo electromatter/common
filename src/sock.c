@@ -6,8 +6,8 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
-#include "net.h"
-#include "sock.h"
+#include <common/net.h>
+#include <common/sock.h>
 
 #define IO_SIZE		(64*1024)
 

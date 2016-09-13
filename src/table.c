@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "hash.h"
-#include "table.h"
+#include <common/hash.h>
+#include <common/table.h>
 
 #define DEFAULT_TABLE_SIZE	(64)
 

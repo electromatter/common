@@ -5,7 +5,7 @@
 #include <mcp_base/fbuf.h>
 #include <mcp_base/mcp.h>
 
-#include "util.h"
+#include <common/util.h>
 
 int fbuf_vsprintf(struct fbuf *dest, const char *format, va_list args)
 {

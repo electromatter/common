@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "hash.h"
+#include <common/hash.h>
 
 uint64_t fnv1a(uint64_t hash, const void *data, size_t count)
 {

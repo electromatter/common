@@ -1,4 +1,4 @@
-#include "heap.h"
+#include <common/heap.h>
 
 static size_t roundup_pow2(size_t x)
 {

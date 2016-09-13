@@ -4,7 +4,7 @@
 
 #include <mcp_base/fbuf.h>
 
-#include "util.h"
+#include <common/util.h>
 
 #define MAX_TEMPBUF	(100)
 

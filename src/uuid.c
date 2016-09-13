@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "sha1.h"
-#include "util.h"
-#include "uuid.h"
+#include <common/sha1.h>
+#include <common/util.h>
+#include <common/uuid.h>
 
 static int hex_dec(int x)
 {
