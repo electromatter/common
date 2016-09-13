@@ -1,5 +1,5 @@
-#ifndef SOCK_H
-#define SOCK_H
+#ifndef COMMON_SOCK_H
+#define COMMON_SOCK_H
 
 #include <sys/types.h>
 

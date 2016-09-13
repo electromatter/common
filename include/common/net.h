@@ -1,5 +1,5 @@
-#ifndef NET_H
-#define NET_H
+#ifndef COMMON_NET_H
+#define COMMON_NET_H
 
 struct fbuf;
 

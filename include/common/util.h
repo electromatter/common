@@ -1,5 +1,5 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef COMMON_UTIL_H
+#define COMMON_UTIL_H
 
 /* Debug helpers */
 #include <stdlib.h>

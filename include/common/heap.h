@@ -1,5 +1,5 @@
-#ifndef HEAP_H
-#define HEAP_H
+#ifndef COMMON_HEAP_H
+#define COMMON_HEAP_H
 
 #include <stdlib.h>
 

@@ -1,5 +1,5 @@
-#ifndef UUID_H
-#define UUID_H
+#ifndef COMMON_UUID_H
+#define COMMON_UUID_H
 
 int parse_uuid(unsigned char uuid[16], const char *text);
 int parse_hex_uuid(unsigned char uuid[16], const char *text);

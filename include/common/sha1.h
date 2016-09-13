@@ -15,8 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef SHA1_H
-#define SHA1_H
+#ifndef COMMON_SHA1_H
+#define COMMON_SHA1_H
 
 #include <stdlib.h>
 #include <stdint.h>

@@ -15,8 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef RB_H
-#define RB_H
+#ifndef COMMON_RB_H
+#define COMMON_RB_H
 
 #include <stdlib.h>
 
