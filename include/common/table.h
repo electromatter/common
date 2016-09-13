@@ -62,6 +62,9 @@ struct {								\
 	(table)->buckets = NULL;					\
 } while (0)
 
+/* cmp(a, b) returns non-zero if a, b are not equal
+ * hash(a) returns the hash code of a, if cmp(a, b) could return zero,
+ * then hash(a) = hash(b)! */
 #define TABLE_GEN(attr, preifx, table_type, type, field, hash, cmp)	\
 attr type *								\
 preifx##next_equal(table_type *table, type *elm) {			\

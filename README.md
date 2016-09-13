@@ -10,5 +10,5 @@ repo.
 
 Under ISC license.
 
-TODO: cleanup and organize everything, better name
+TODO: cleanup and organize everything, better name, rename vec
 
