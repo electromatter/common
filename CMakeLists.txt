@@ -21,7 +21,8 @@ find_package(EV REQUIRED)
 add_library(common
 	src/fbuf_printf.c src/fbuf_temp.c src/hash.c src/heap.c
 	src/hexdump.c src/net.c src/rb.c src/sha1.c src/sock.c
-	src/strbufcpy.c src/table.c src/uuid.c)
+	src/strbufcpy.c src/table.c src/uuid.c src/javahash.c
+	src/timeutil.c)
 
 add_dependencies(common mcp_base)
 
