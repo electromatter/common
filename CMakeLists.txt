@@ -23,8 +23,6 @@ add_library(common
 	src/hexdump.c src/net.c src/rb.c src/sha1.c src/sock.c
 	src/strbufcpy.c src/table.c src/uuid.c)
 
-add_dependencies(common mcp_base)
-
 include(CTest)
 
 #enable_testing()
