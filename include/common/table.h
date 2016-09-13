@@ -2,151 +2,161 @@
 #define COMMON_TABLE_H
 
 #include <stdlib.h>
-#include <stdint.h>
 
-#include <common/hash.h>
-
-/* Call table_update if entry's hash code possibly changes to reinsert
- * into table. */
-struct table_entry
-{
-	struct table_entry *next;
-	uint64_t hash;
-};
-
-struct table
-{
-	size_t size, load;
-	struct table_entry **table;
-};
-
-/* Returns zero on equality, non-zero otherwise. */
-typedef int table_cmp_func(const struct table_entry *a, const struct table_entry *b);
-/* Returns the hash value of the given entry. Two entries that may
- * compare equal MUST have the same hash value. Collisions are allowed. */
-typedef uint64_t table_hash_func(const struct table_entry *ent);
-
-/* Resizes the table to have size buckets. */
-int table_resize(struct table *tab, size_t size);
-
-/* Initializes a table with size buckets. */
-static inline
-int table_init(struct table *tab, size_t size)
-{
-	tab->size = 0;
-	tab->load = 0;
-	tab->table = NULL;
-	return table_resize(tab, size);
+#define TABLE(name, type)						\
+struct name {								\
+	size_t num_buckets, load;					\
+	type **buckets;							\
 }
 
-/* Frees memory associated with the table. Warning: if the table
- * was not empty, then the entries may be leaked. */
-static inline
-void table_destroy(struct table *tab)
-{
-	tab->size = 0;
-	tab->load = 0;
-	free(tab->table);
+#define TABLE_INITIALIZER						\
+	{0, 0, NULL}
+
+#define TABLE_ENTRY(type, hash_type)					\
+struct {								\
+	type *next;							\
+	hash_type code;							\
 }
 
-/* Returns the next entry that is equal to ent in the table that ent is
- * a part of. NOTE: if ent is removed, next will return NULL.
- * ent MUST still be valid. */
-static inline
-struct table_entry *table_next(struct table_entry *ent, table_cmp_func cmp)
-{
-	struct table_entry *next;
+#define TABLE_ENTRY_INITIALIZER						\
+	{NULL, 0}
 
-	if (ent == NULL)
-		return NULL;
+#define TABLE_NUM_BUCKETS(table)	((table)->num_buckets)
+#define TABLE_LOAD(table)		((table)->load)
 
-	next = ent->next;
-	while (next != NULL && cmp(ent, next))
-		next = next->next;
+#define TABLE_BUCKET(table, code)					\
+	((table)->buckets[(code) % (table)->num_buckets])
 
-	return next;
-}
+#define TABLE_NEXT(table, elm, field)					\
+	((elm) == NULL ? NULL : ((elm)->field.next != NULL ?		\
+		(elm)->field.next) : TABLE_BUCKET(table, elm->field.code + 1))
 
-/* Returns the first entry that is equal to key. */
-static inline
-struct table_entry *table_first(struct table *tab, struct table_entry *key,
-		table_hash_func hash, table_cmp_func cmp)
-{
-	struct table_entry *ent;
+#define TABLE_FIRST(table)						\
+	((table)->num_buckets == 0 ? NULL : (table)->buckets[0])
 
-	if (tab->size == 0)
-		return NULL;
+/* UNSAFE ACROSS INSERT AND REMOVE */
+#define TABLE_FOREACH(var, table, field)				\
+	for (var = TABLE_FIRST(table);					\
+		var != NULL;						\
+		var = TABLE_NEXT(table, var, field))
 
-	ent = tab->table[hash(key) % tab->size];
-	while (ent != NULL && cmp(ent, key))
-		ent = ent->next;
+/* UNSAFE ACROSS TABLE_RESIZE */
+#define TABLE_FOREACH_SAFE(var, table, field, next)			\
+	for (var = TABLE_FIRST(table);					\
+		var != NULL						\
+		&& (next = TABLE_NEXT(table, var, field), 1);		\
+		var = next)
 
-	return ent;
-}
+#define TABLE_INIT(table)	do {					\
+		(table)->num_buckets = 0;				\
+		(table)->load = 0;					\
+		(table)->buckets = NULL;				\
+} while (0)
 
-/* Inserts ent into the table. Duplicates are allowed, so long
- * as the same ent is not re-inserted. */
-static inline
-void table_insert(struct table *tab, struct table_entry *ent,
-		table_hash_func hash)
-{
-	if (tab->size == 0)
-		abort();
+#define TABLE_DESTROY(table)	do { 					\
+	if ((table) == NULL)						\
+		break;							\
+	(table)->num_buckets = 0;					\
+	(table)->load = 0;						\
+	free((table)->buckets);						\
+	(table)->buckets = NULL;					\
+} while (0)
 
-	ent->hash = hash(ent);
-
-#ifndef NDEBUG
-	struct table_entry *prev = tab->table[ent->hash % tab->size];
-	while (prev != NULL) {
-		if (prev == ent)
-			abort();
-		prev = prev->next;
-	}
-#endif
-
-	ent->next = tab->table[ent->hash % tab->size];
-	tab->table[ent->hash % tab->size] = ent;
-	tab->load += 1;
-}
-
-/* Removes a given ent from a table. If ent is not in the table, this
- * is harmless. */
-void table_remove(struct table *tab, struct table_entry *ent);
-
-/* Fused table_first and table_remove. Finds the first entry that is equal
- * to key, removes it, and returns it. */
-static inline
-struct table_entry *table_pop(struct table *tab, struct table_entry *key,
-		table_hash_func hash, table_cmp_func cmp)
-{
-	struct table_entry *ent, **prev;
-
-	if (tab->size == 0)
-		return NULL;
-
-	prev = &tab->table[hash(key) % tab->size];
-	ent = *prev;
-	while (ent != NULL && cmp(ent, key))
-		prev = &ent->next, ent = ent->next;
-
-	if (ent == NULL)
-		return NULL;
-
-	*prev = ent->next;
-	tab->load -= 1;
-	return ent;
-}
-
-/* Call when ent's hash value possibly changes. Reassignes ent to
- * the correct bucket. */
-static inline
-void table_update(struct table *tab, struct table_entry *ent,
-		table_hash_func hash)
-{
-	if (tab->size == 0 || ent->hash % tab->size == hash(ent) % tab->size)
-		return;
-	table_remove(tab, ent);
-	table_insert(tab, ent, hash);
+#define TABLE_GEN(attr, preifx, table_type, type, field, hash, cmp)	\
+attr type *								\
+preifx##next_equal(table_type *table, type *elm) {			\
+	type *key = elm;						\
+	if (elm == NULL)						\
+		return NULL;						\
+	elm = elm->field.next;						\
+	while (elm != NULL && cmp(key, elm))				\
+		next = elm->field.next;					\
+	return elm;							\
+}									\
+attr type *								\
+prefix##first_equal(table_type *table, type *key) {			\
+	type *next;							\
+	if (TABLE_NUM_BUCKETS(table) == 0)				\
+		return NULL;						\
+	next = TABLE_BUCKET(table, hash(key));				\
+	while (next != NULL && cmp(key, next))				\
+		next = next->field.next;				\
+	return next;							\
+}									\
+attr void								\
+prefix##push(table_type *table, type *elm) {				\
+	if (TABLE_NUM_BUCKETS(table) == 0)				\
+		abort();						\
+	elm->field.code = hash(elm);					\
+	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
+	TABLE_BUCKET(table, elm->field.code) = elm;			\
+	TABLE_LOAD(table) += 1;						\
+}									\
+attr void								\
+preifx##remove(table_type *table, type *elm) {				\
+	type *prev;							\
+	if (TABLE_NUM_BUCKETS(table) == 0)				\
+		return;							\
+	elm->field.code = hash(elm);					\
+	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
+	TABLE_BUCKET(table, elm->field.code) = elm;			\
+}									\
+attr int								\
+prefix##resize(table_type *table, size_t num_buckets) {			\
+	size_t i;							\
+	type **old_table = table->buckets, **new_table = NULL,		\
+		*next, *cur;						\
+									\
+	if (num_buckets == 0)						\
+		goto done;						\
+									\
+	new_table = calloc(num_buckets, sizeof(void*));			\
+	if (new_table == NULL)						\
+		return -1;						\
+									\
+	for (i = 0; i < TABLE_NUM_BUCKETS(table); i++) {		\
+		cur = old_table[i];					\
+		while (cur != NULL) {					\
+			next = cur->field.next;				\
+			cur->field.next =				\
+				new_table[				\
+					cur->field.code % num_buckets];	\
+			new_table[cur->field.code % num_buckets] = cur;	\
+			cur = next;					\
+		}							\
+	}								\
+									\
+done:									\
+	free(old_table);						\
+	table->buckets = new_table;					\
+	table->num_buckets = num_buckets;				\
+	return 0;							\
+}									\
+attr void								\
+preifx##init(table_type *table, size_t size) {				\
+	TABLE_INIT(table);						\
+	prefix##resize(table, size);					\
+}									\
+attr void								\
+prefix##destroy(table_type *table) {					\
+	TABLE_DESTROY(table);						\
+}									\
+attr type *								\
+preifx##pop(table_type *type, type *key) {				\
+	type *elm = prefix##first_equal(table, type *key);		\
+	preifx##remove(table, elm);					\
+	return elm;							\
+}									\
+attr type *								\
+prefix##replace_first(table_type *table, type *elm) {			\
+	type *old = prefix##pop(table, elm);				\
+	preifx##push(table, elm);					\
+	return old;							\
+}									\
+attr void								\
+prefix##update(table_type *table, type *elm) {				\
+	prefix##remove(table, elm);					\
+	prefix##push(table, elm);					\
 }
 
 #endif
