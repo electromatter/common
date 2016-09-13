@@ -73,4 +73,16 @@ int bufstrcpy(char *dest, size_t destsize, const char *src, size_t srcsize);
 char *bufstrdup(const char *src, size_t srcsize);
 void *bufdup(const void *src, size_t srcsize);
 
+struct timespec;
+int timespec_cmp(const struct timespec *left, const struct timespec *right);
+void timespec_neg(struct timespec *acc);
+void timespec_add(struct timespec *acc, const struct timespec *delta);
+void timespec_sub(struct timespec *acc, const struct timespec *delta);
+void timespec_mul(struct timespec *acc, const struct timespec *delta);
+int timespec_to_msec(const struct timespec *x);
+double timespec_to_sec(const struct timespec *x);
+
+void java_hexdigits(char *str, const void *digest, size_t size);
+
+
 #endif
