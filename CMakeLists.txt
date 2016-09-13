@@ -36,8 +36,6 @@ endif()
 
 add_library(common ${COMMON_SRCS})
 
-add_dependencies(common mcp_base)
-
 include(CTest)
 
 #enable_testing()
