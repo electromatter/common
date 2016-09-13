@@ -3,7 +3,9 @@
 
 #include <stdlib.h>
 
-#define AES_BLOCK_SIZE		(16)
+#ifndef AES_BLOCK_SIZE
+# define AES_BLOCK_SIZE		(16)
+#endif
 
 struct aes_key {
 	unsigned char coeff[256], secret[32];

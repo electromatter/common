@@ -18,11 +18,23 @@ include_directories("${MCP_BASE_PATH}/include" "${PROJECT_SOURCE_DIR}/include")
 
 find_package(EV REQUIRED)
 
-add_library(common
+set(COMMON_SRCS
 	src/fbuf_printf.c src/fbuf_temp.c src/hash.c src/heap.c
 	src/hexdump.c src/net.c src/rb.c src/sha1.c src/sock.c
 	src/strbufcpy.c src/table.c src/uuid.c src/javahash.c
 	src/timeutil.c)
+
+if(COMMON_WITH_AES OR COMMON_WITH_AES_NI)
+	set(COMMON_SRCS ${COMMON_SRCS} src/aes.c)
+	if(COMMON_WITH_AES_NI)
+		add_definitions(-DUSE_AES_NI)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -maes")
+	else()
+		find_package(OpenSSL REQUIRED)
+	endif()
+endif()
+
+add_library(common ${COMMON_SRCS})
 
 add_dependencies(common mcp_base)
 
