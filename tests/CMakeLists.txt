@@ -15,3 +15,10 @@ target_link_libraries(heap_test common)
 #fbuftemp test
 #etc...
 
+#find_program(CTEST_MEMORYCHECK_COMMAND valgrind)
+#set(CTEST_MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full")
+
+add_test(NAME table_test COMMAND table_test)
+add_test(NAME vec_test COMMAND vec_test)
+add_test(NAME heap_test COMMAND heap_test)
+
