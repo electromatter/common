@@ -83,11 +83,10 @@ prefix##contract(table_type *table) {					\
 	prefix##resize(table, prime);					\
 }									\
 attr void								\
-prefix##init(table_type *table, size_t size) {				\
+prefix##init(table_type *table) {					\
 	table->num_buckets = 0;						\
 	table->load = 0;						\
 	table->buckets = NULL;						\
-	prefix##resize(table, size);					\
 }									\
 attr void								\
 prefix##destroy(table_type *table) {					\
@@ -123,7 +122,7 @@ prefix##next_equal(type *elm) {						\
 attr type *								\
 prefix##first(table_type *table) {					\
 	size_t bucket;							\
-	if (table == NULL || table->num_buckets == 0)			\
+	if (table == NULL)						\
 		return NULL;						\
 	for (bucket = 0; bucket < table->num_buckets; bucket++)		\
 		if (table->buckets[bucket] != NULL)			\
