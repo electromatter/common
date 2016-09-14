@@ -4,7 +4,8 @@ target_link_libraries(table_test common)
 add_executable(vec_test vec_test.c)
 target_link_libraries(vec_test common)
 
-#heap
+add_executable(heap_test heap_test.c)
+target_link_libraries(heap_test common)
 
 #add_executable(aes_test aes_test.c)
 #target_link_libraries(aes_test common)

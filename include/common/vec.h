@@ -105,7 +105,7 @@ prefix##insert(vec_type *vec, size_t index, type value) {		\
 attr void								\
 prefix##remove(vec_type *vec, size_t index) {				\
 	if (index >= VEC_COUNT(vec))					\
-		abort();						\
+		return;							\
 	for (index += 1; index < VEC_COUNT(vec); index++)		\
 		VEC_AT(vec, index - 1) = VEC_AT(vec, index);		\
 	VEC_COUNT(vec) -= 1;						\
@@ -120,7 +120,7 @@ prefix##push(vec_type *vec, type value) {				\
 }									\
 attr int								\
 prefix##peek(vec_type *vec, type *value) {				\
-	if (VEC_COUNT(vec) == 0)					\
+	if (VEC_EMPTY(vec))						\
 		return -1;						\
 	if (value != NULL)						\
 		*value = VEC_AT(vec, 0);				\
@@ -135,6 +135,8 @@ prefix##pop(vec_type *vec, type *value) {				\
 }									\
 attr void								\
 prefix##swap(vec_type *vec, size_t i, size_t j) {			\
+	if (i == j)							\
+		return;							\
 	type temp = VEC_AT(vec, i);					\
 	VEC_AT(vec, i) = VEC_AT(vec, j);				\
 	VEC_AT(vec, j) = temp;						\
@@ -152,7 +154,7 @@ prefix##init(vec_type *vec) {						\
 	(vec)->items = NULL;						\
 }									\
 attr void								\
-preifx##destroy(vec_type *vec) {					\
+prefix##destroy(vec_type *vec) {					\
 	(vec)->num_items = 0;						\
 	(vec)->max_items = 0;						\
 	free((vec)->items);						\

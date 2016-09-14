@@ -3,227 +3,109 @@
 
 #include <common/vec.h>
 
-#define OHEAP_ITEM(name)				\
-	struct name {					\
-		size_t index;				\
-	}
+#define VEC_HEAP(name, type)		FLAT_VEC(name, type)
+#define HEAP_INITIALIZER		VEC_INITIALIZER
+#define HEAP_EMPTY(heap)		VEC_EMPTY(heap)
 
-#define OHEAP(name, type)	VEC(name, type*)
-
-#define HEAP(name, type)	VEC(name, type)
-#define HEAP_INITIALIZER	VEC_INITIALIZER
-#define HEAP_INIT(heap)		VEC_INIT(heap)
-#define HEAP_DESTROY(heap)	VEC_DESTROY(heap)
-#define HEAP_EMPTY(heap)	VEC_EMPTY(heap)
-#define HEAP_HEAD(heap)		VEC_AT(heap, 0)
+#define HEAP_UPDATE_NOP(item, new_index)
 
 /* test(parent, child)
- * returns non-zero if heap property is satisfied
- * parent <= child for a min heap
- * parent >= child for a max heap */
-#define HEAP_GEN(attr, prefix, heap_type, type, test)	\
-attr							\
-prefix##init(heap_type *heap) {				\
-	VEC_INIT(heap);					\
-}							\
-attr 							\
-prefix##destroy(heap_type *heap) {			\
-	VEC_DESTROY(heap);				\
-}							\
-attr void						\
-prefix##compact(heap_type *heap, size_t new_capacity) {	\
-	return VEC_EXPAND(heap, new_capacity, type);	\
-}							\
-attr void						\
-prefix##compact(heap_type *heap) {			\
-	VEC_COMPACT(heap);				\
-}							\
-attr void						\
-prefix##siftup(heap_type *heap, size_t index) {		\
-	size_t parent;					\
-	type temp;					\
-							\
-	while (index > 0) {				\
-		parent = (index - 1) / 2;		\
-							\
-		/* check if the heap is already valid */\
-		if (test(heap->items[parent],		\
-				heap->items[index]))	\
-			break;				\
-							\
-		/* repair the heap and continue up. */	\
-		temp = heap->items[parent];		\
-		heap->items[parent]= heap->items[index];\
-		heap->items[index] = temp;		\
-		index = parent;				\
-	}						\
-}							\
-attr void						\
-prefix##siftdown(heap_type *heap, size_t index) {	\
-	size_t child;					\
-	type temp;					\
-							\
-	while (1) {					\
-		child = 2 * index + 1;			\
-		if (child > VEC_COUNT(heap))		\
-			break;				\
-							\
-		if (child + 1 < VEC_COUNT(heap))	\
-			if (!test(heap->items[child],	\
-				heap->items[child + 1]))\
-				child += 1;		\
-							\
-		/* check if heap is already valid */	\
-		if (test(heap->items[item],		\
-				heap->items[child]))	\
-			break;				\
-							\
-		/* reapair the heap and continue. */	\
-		temp = heap->items[child];		\
-		heap->items[child]= heap->items[index];	\
-		heap->items[index] = temp;		\
-		index = child;				\
-	}						\
-}							\
-attr int						\
-prefix##push(heap_type *heap, type value) {		\
-	size_t index;					\
-	if (prefix##expand(heap) < 0)			\
-		return -1;				\
-	index = VEC_COUNT(heap)++;			\
-	heap->items[index] = value;			\
-	prefix##siftup(heap, index);			\
-	return 0;					\
-}							\
-attr void						\
-prefix##remove(heap_type *heap, size_t index) {		\
-	size_t last = VEC_COUNT(heap) - 1;		\
-	type temp;					\
-							\
-	if (index >= VEC_COUNT(heap))			\
-		abort();				\
-							\
-	if (index != last) {				\
-		temp = heap->items[last];		\
-		heap->items[last]= heap->items[index];	\
-		heap->items[index] = temp;		\
-		prefix##siftdown(heap, index);		\
-	}						\
-							\
-	VEC_COUNT(heap) -= 1;				\
-}							\
-attr value						\
-prefix##pop(heap_type *heap) {				\
-	if (HEAP_EMPTY(heap))				\
-		abort();				\
-	return prefix##remove(heap, VEC_COUNT(heap) - 1);\
+ * must return non-zero if the heap property is satisfied,
+ * and zero if it is violated.
+ * 
+ * for min-heaps: parent <= child
+ * and max-heaps: parent >= child
+ *
+ * update_index(item, new_index)
+ * if the type contained in the heap is an object, and the
+ * object has a field that tracks the index in the heap,
+ * update_index must set the index on that object.
+ */
+#define BASE_HEAP_GEN(attr, prefix, heap_type, type, test, update_index)\
+VEC_GEN(attr, prefix##_vec_, heap_type, type)				\
+attr void								\
+prefix##init(heap_type *heap) {						\
+	prefix##_vec_init(heap);					\
+}									\
+attr void								\
+prefix##destroy(heap_type *heap) {					\
+	prefix##_vec_destroy(heap);					\
+}									\
+attr void								\
+prefix##siftup(heap_type *heap, size_t index) {				\
+	size_t parent;							\
+	if (index >= VEC_COUNT(heap))					\
+		return;							\
+	while (index > 0) {						\
+		parent = (index - 1) / 2;				\
+		if (test(VEC_AT(heap, parent), VEC_AT(heap, index)))	\
+			break;						\
+		prefix##_vec_swap(heap, parent, index);			\
+		update_index(VEC_AT(heap, parent), parent);		\
+		update_index(VEC_AT(heap, index), index);		\
+		index = parent;						\
+	}								\
+}									\
+attr void								\
+prefix##siftdown(heap_type *heap, size_t index) {			\
+	size_t child;							\
+	while (1) {							\
+		child = 2 * index + 1;					\
+		if (child > VEC_COUNT(heap))				\
+			break;						\
+		if (child + 1 < VEC_COUNT(heap))			\
+			if (!test(VEC_AT(heap, child),			\
+					VEC_AT(heap, child + 1)))	\
+				child += 1;				\
+		if (test(VEC_AT(heap, index), VEC_AT(heap, child)))	\
+			break;						\
+		prefix##_vec_swap(heap, index, child);			\
+		update_index(VEC_AT(heap, child), child);		\
+		update_index(VEC_AT(heap, index), index);		\
+		index = child;						\
+	}								\
+}									\
+attr void								\
+prefix##update(heap_type *heap, size_t index) {				\
+	prefix##siftup(heap, index);					\
+	prefix##siftdown(heap, index);					\
+}									\
+attr int								\
+prefix##peek(heap_type *heap, type *value) {				\
+	return prefix##_vec_peek(heap, value);				\
+}									\
+attr int								\
+prefix##push(heap_type *heap, type value) {				\
+	if (prefix##_vec_push(heap, value) < 0)				\
+		return -1;						\
+	update_index(VEC_AT(heap, VEC_COUNT(heap) - 1),			\
+			VEC_COUNT(heap) - 1);				\
+	prefix##siftup(heap, VEC_COUNT(heap) - 1);			\
+	return 0;							\
+}									\
+attr void								\
+prefix##remove(heap_type *heap, size_t index) {				\
+	size_t tail = VEC_COUNT(heap) - 1;				\
+	if (VEC_EMPTY(heap))						\
+		return;							\
+	if (tail != index)						\
+		prefix##_vec_swap(heap, index, tail);			\
+	VEC_COUNT(heap) -= 1;						\
+	prefix##update(heap, index);					\
+}									\
+attr int								\
+prefix##pop(heap_type *heap, type *value) {				\
+	if (prefix##peek(heap, value) < 0)				\
+		return -1;						\
+	prefix##remove(heap, 0);					\
+	return 0;							\
 }
 
-/* test(parent, child)
- * returns non-zero if heap property is satisfied
- * parent <= child for a min heap
- * parent >= child for a max heap */
-#define OHEAP_GEN(attr, prefix, heap_type, type, field, test)	\
-attr								\
-prefix##init(heap_type *heap) {					\
-	VEC_INIT(heap);						\
-}								\
-attr 								\
-prefix##destroy(heap_type *heap) {				\
-	VEC_DESTROY(heap);					\
-}								\
-attr void							\
-prefix##compact(heap_type *heap, size_t new_capacity) {		\
-	return VEC_EXPAND(heap, new_capacity, type*);		\
-}								\
-attr void							\
-prefix##compact(heap_type *heap) {				\
-	VEC_COMPACT(heap);					\
-}								\
-attr void							\
-prefix##siftup(heap_type *heap, type *item) {			\
-	size_t index = item->field.index;			\
-	size_t parent;						\
-	type *temp;						\
-								\
-	while (index > 0) {					\
-		parent = (index - 1) / 2;			\
-								\
-		/* check if the heap is already valid */	\
-		if (test(heap->items[parent],			\
-				heap->items[index]))		\
-			break;					\
-								\
-		/* repair the heap and continue up. */		\
-		temp = heap->items[parent];			\
-		heap->items[parent]= heap->items[index];	\
-		heap->items[index] = temp;			\
-		heap->items[parent]->field.index = parent;	\
-		heap->items[index]->field.index = index;	\
-		index = parent;					\
-	}							\
-}								\
-attr void							\
-prefix##siftdown(heap_type *heap, type *item) {		\
-	size_t index = item->field.index;			\
-	size_t child;						\
-	type *temp;						\
-								\
-	while (1) {						\
-		child = 2 * index + 1;				\
-		if (child > VEC_COUNT(heap))			\
-			break;					\
-								\
-		if (child + 1 < VEC_COUNT(heap))		\
-			if (!test(heap->items[child],		\
-				heap->items[child + 1]))	\
-				child += 1;			\
-								\
-		/* check if heap is already valid */		\
-		if (test(heap->items[item],			\
-				heap->items[child]))		\
-			break;					\
-								\
-		/* reapair the heap and continue. */		\
-		temp = heap->items[child];			\
-		heap->items[child]= heap->items[index];		\
-		heap->items[index] = temp;			\
-		index = child;					\
-	}							\
-}								\
-attr int							\
-prefix##push(heap_type *heap, type *value) {			\
-	if (prefix##expand(heap) < 0)				\
-		return -1;					\
-	value->field.index = VEC_COUNT(heap)++;			\
-	heap->items[value->field.index] = value;		\
-	prefix##siftup(heap, index);				\
-	return 0;						\
-}								\
-attr void							\
-prefix##remove(heap_type *heap, type *item) {			\
-	size_t index = item->field.index;			\
-	size_t last = VEC_COUNT(heap) - 1;			\
-	type *temp;						\
-								\
-	if (index >= VEC_COUNT(heap))				\
-		abort();					\
-								\
-	if (index != last) {					\
-		temp = heap->items[last];			\
-		heap->items[last]= heap->items[index];		\
-		heap->items[index] = temp;			\
-		prefix##siftdown(heap, heap->items[index]);	\
-	}							\
-								\
-	VEC_COUNT(heap) -= 1;					\
-}								\
-attr value							\
-prefix##pop(heap_type *heap) {					\
-	if (HEAP_EMPTY(heap))					\
-		abort();					\
-	return prefix##remove(heap, VEC_COUNT(heap) - 1);	\
-}
+#define OHEAP_GEN(attr, prefix, heap_type, type, test, update_index)	\
+	BASE_HEAP_GEN(attr, prefix, heap_type, type*, test, update_index)
+
+#define HEAP_GEN(attr, prefix, heap_type, type, test)			\
+	BASE_HEAP_GEN(attr, prefix, heap_type, type, test, HEAP_UPDATE_NOP)
 
 #endif
 
