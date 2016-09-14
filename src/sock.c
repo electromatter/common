@@ -18,6 +18,7 @@ static void sock_do_write(struct ev_loop *loop, struct ev_io *w, int revents);
 
 void sock_init(struct sock *s, const struct sock_args *args)
 {
+	assert(s && args);
 	fbuf_init(&s->read_buf, FBUF_MAX);
 	fbuf_init(&s->write_buf, FBUF_MAX);
 	s->func = args->func;
@@ -75,6 +76,7 @@ void sock_destroy(struct sock *s)
 
 void sock_args(struct sock_args *args, struct sock *s)
 {
+	assert(s);
 	assert(s->read_watcher.fd == s->fd);
 	assert(s->write_watcher.fd == s->fd);
 	assert(s->fd >= 0);
@@ -124,6 +126,8 @@ static void sock_shutdown_write(struct sock *s)
 
 void sock_shutdown(struct sock *s, int how)
 {
+	assert(s);
+
 	if (how & SOCK_SHUT_READ)
 		sock_shutdown_read(s);
 
@@ -139,6 +143,8 @@ static void sock_wake(struct sock *s)
 
 void sock_block(struct sock *s, int hold)
 {
+	assert(s);
+
 	if (s->read_dead)
 		return;
 
@@ -159,6 +165,8 @@ void sock_block(struct sock *s, int hold)
 
 void sock_quota(struct sock *s, ssize_t quota)
 {
+	assert(s);
+
 	if (s->write_dead)
 		return;
 
@@ -177,6 +185,8 @@ void sock_quota(struct sock *s, ssize_t quota)
 
 void sock_commit(struct sock *s)
 {
+	assert(s);
+
 	if (!s->can_write || s->write_quota == 0)
 		return;
 
@@ -192,6 +202,7 @@ static void sock_do_read(struct ev_loop *loop, struct ev_io *w, int revents)
 	ssize_t ret = 0;
 
 	if (s->async) {
+		assert(s->func);
 		s->func(s, SOCK_READ, 0);
 		s->async = 0;
 		return;
@@ -208,6 +219,7 @@ read_shutdown:
 		s->read_dead = 1;
 		ev_io_stop(loop, w);
 		shutdown(w->fd, SHUT_RD);
+		assert(s->func);
 		s->func(s, SOCK_SHUT_READ, 0);
 		return;
 	}
@@ -225,6 +237,7 @@ read_shutdown:
 	if (ret <= 0)
 		goto read_shutdown;
 
+	assert(s->func);
 	s->func(s, SOCK_READ, ret);
 }
 
@@ -239,6 +252,7 @@ write_shutdown:
 		s->write_dead = 1;
 		ev_io_stop(loop, w);
 		shutdown(w->fd, SHUT_WR);
+		assert(s->func);
 		s->func(s, SOCK_SHUT_WRITE, 0);
 		return;
 	}
@@ -269,5 +283,6 @@ write_shutdown:
 	if (ret == 0)
 		return;
 
+	assert(s->func);
 	s->func(s, SOCK_WRITE, ret);
 }
