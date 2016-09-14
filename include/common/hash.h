@@ -14,5 +14,7 @@ uint32_t murmur3_final(uint32_t hash, size_t num_bytes);
 
 uint64_t nth_pow2_prime(int n);
 uint64_t pow2_prime(uint64_t value);
+uint64_t next_pow2_prime(uint64_t value);
+uint64_t prev_pow2_prime(uint64_t value);
 
 #endif

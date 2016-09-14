@@ -1,168 +1,91 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include <common/util.h>
+#include <common/hash.h>
 #include <common/table.h>
 
-union uuid
-{
-	unsigned char u8[16];
-	uint64_t u64[2];
-};
+typedef struct entity entity_t;
+uint32_t g_murmur;
 
-struct entity
-{
-	struct table_entry tab_ent;
+#define DEFAULT_TABLE_SIZE	(16)
+
+struct entity {
+	TABLE_ENTRY(entity_t, uint32_t) link;
 	uint64_t id;
 };
 
-struct entity_table
-{
-	struct table tab;
-};
+typedef LINKED_TABLE(, entity_t) entity_table_t;
 
-static uint32_t murmur3_seed;
-
-static uint64_t entity_hash(const struct table_entry *e)
+static int entity_cmp(const entity_t *left, const entity_t *right)
 {
-	const struct entity *ent;
-	uint32_t hash = murmur3_seed;
-	ent = containerof(e, const struct entity, tab_ent);
+	return left->id != right->id;
+}
+
+static uint32_t entity_hash(const entity_t *ent)
+{
+	uint32_t hash = g_murmur;
 	hash = murmur3_update(hash, ent->id);
 	hash = murmur3_update(hash, ent->id >> 32);
-	return murmur3_final(hash, 8);
+	return hash;
 }
 
-static int entity_cmp(const struct table_entry *a, const struct table_entry *b)
-{
-	const struct entity *left, *right;
-	left = containerof(a, const struct entity, tab_ent);
-	right = containerof(b, const struct entity, tab_ent);
-	return left->id == right->id ? 0 : 1;
-}
+TABLE_GEN(, et_, entity_table_t, entity_t, link, entity_hash, entity_cmp)
 
-struct entity *entity_get(struct entity_table *tab, uint64_t id)
+entity_t *entity_get(entity_table_t *tab, uint64_t id)
 {
-	struct entity key;
-	struct table_entry *entry;
+	entity_t key;
 	key.id = id;
-	entry = table_first(&tab->tab, &key.tab_ent, entity_hash, entity_cmp);
-	return containerof(entry, struct entity, tab_ent);
+	return et_first_equal(tab, &key);
 }
 
-struct entity *entity_new(struct entity_table *tab, uint64_t id)
+entity_t *entity_new(entity_table_t *tab, uint64_t id)
 {
-	struct entity *ent;
+	entity_t *ent;
 
 	if (entity_get(tab, id) != NULL)
 		return NULL;
-       
+
+	if (et_expand(tab, 1) < 0)
+		return NULL;
+
 	ent = malloc(sizeof(*ent));
 	if (ent == NULL)
 		return NULL;
 
 	ent->id = id;
-
-	if (tab->tab.load > tab->tab.size) {
-		table_resize(&tab->tab, tab->tab.size * 3);
-		printf("GROW %li\n", tab->tab.size);
-	}
-
-	table_insert(&tab->tab, &ent->tab_ent, entity_hash);
+	et_push(tab, ent);
 	return ent;
 }
 
-void entity_free(struct entity_table *tab, uint64_t id)
+void entity_free(entity_table_t *tab, uint64_t id)
 {
-	struct entity *ent = entity_get(tab, id);
-	
-	if (ent == NULL)
-		return;
-
-	table_remove(&tab->tab, &ent->tab_ent);
+	entity_t *ent = entity_get(tab, id);
+	et_remove(tab, ent);
 	free(ent);
-
-	if (tab->tab.load < tab->tab.size / 2 && tab->tab.size > 128) {
-		table_resize(&tab->tab, tab->tab.size / 3);
-		printf("SHRINK %li\n", tab->tab.size);
-	}
 }
 
-int entity_table_init(struct entity_table *tab)
+void show_entities(entity_table_t *tab)
 {
-	return table_init(&tab->tab, 300000000);
-}
-
-static size_t count_links(struct entity_table *tab, size_t bucket)
-{
-	size_t count = 0;
-	struct table_entry *ent = tab->tab.table[bucket];
-	while (ent != NULL) {
-		ent = ent->next;
-		count += 1;
-	}
-	return count;
-}
-
-void tab_stats(struct entity_table *tab)
-{
-	size_t min, max, i, count;
-	double mean, var, diff, inv_size;
-
-	inv_size = 1. / tab->tab.size;
-	mean = inv_size * tab->tab.load;
-	var = 0;
-
-
-	min = SIZE_MAX;
-	max = 0;
-	for (i = 0; i < tab->tab.size; i++) {
-		count = count_links(tab, i);
-		if (count < min)
-			min = count;
-		if (count > max)
-			max = count;
-		diff = count - mean;
-		var += inv_size * diff * diff;
-	}
-
-	printf("mean %li/%li = %f\n", tab->tab.load, tab->tab.size, mean);
-	printf("var %f\n", var);
-	printf("min = %li max = %li\n", min, max);
+	entity_t *ent;
+	for (ent = et_first(tab); ent != NULL; ent = et_next(tab, ent))
+		printf("%li\n", ent->id);
 }
 
 int main(void)
 {
-	struct entity_table tab;
-//	struct entity *ent;
+	entity_table_t table = TABLE_INITIALIZER;
 
-	murmur3_seed = 0xdeedbeef;
+	printf("%i\n", !!entity_new(&table, 100));
+	printf("%i\n", !!entity_new(&table, 101));
+	printf("%i\n", !!entity_new(&table, 102));
+	printf("%i\n", !!entity_new(&table, 103));
 
-  	if (entity_table_init(&tab))
-		return 1;
+	printf("\nentities:\n");
 
-#if 0
-	ent = entity_new(&tab, -1);
-	printf("tab(%p):\n", (void*)&tab);
-	hexdump(&tab, sizeof(tab));
-	printf("tab.tab.table(%p):\n", (void*)tab.tab.table);
-	hexdump(tab.tab.table, tab.tab.size * sizeof(void*));
-	printf("ent(%p):\n", (void*)ent);
-	hexdump(ent, sizeof(*ent));
-#endif
+	show_entities(&table);
 
-	for (int i = 0; i < 100000000; i++)
-		entity_new(&tab, i);
-#if 0
-	tab_stats(&tab);
-
-	for (int i = 0; i < 100000000; i++)
-		entity_free(&tab, i);
-
-	tab_stats(&tab);
-
-	table_destroy(&tab.tab);
-#endif
 	return 0;
 }
 

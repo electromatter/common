@@ -76,13 +76,37 @@ uint64_t nth_pow2_prime(int n)
 
 uint64_t pow2_prime(uint64_t value)
 {
-	int left = 0, mid, right = 65;
-	while (left <= right) {
-		mid = (left + right) / 2;
-		if (nth_pow2_prime(mid) >= value)
-			right = mid - 1;
-		else
-			left = mid + 1;
+	uint64_t prime;
+	int i = 0;
+	for (i = 1; i < 64; i++) {
+		prime = nth_pow2_prime(i);
+		if (value <= prime)
+			return prime;
 	}
-	return nth_pow2_prime(left);
+	return 0;
 }
+
+uint64_t next_pow2_prime(uint64_t value)
+{
+	uint64_t prime;
+	int i = 0;
+	for (i = 1; i < 64; i++) {
+		prime = nth_pow2_prime(i);
+		if (value < prime)
+			return prime;
+	}
+	return 0;
+}
+
+uint64_t prev_pow2_prime(uint64_t value)
+{
+	uint64_t prime;
+	int i = 64;
+	while (i --> 0) {
+		prime = nth_pow2_prime(i);
+		if (value > prime)
+			return prime;
+	}
+	return 0;
+}
+

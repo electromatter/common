@@ -3,7 +3,9 @@
 
 #include <stdlib.h>
 
-#define TABLE(name, type)						\
+#include <common/hash.h>
+
+#define LINKED_TABLE(name, type)					\
 struct name {								\
 	size_t num_buckets, load;					\
 	type **buckets;							\
@@ -21,89 +23,13 @@ struct {								\
 #define TABLE_ENTRY_INITIALIZER						\
 	{NULL, 0}
 
-#define TABLE_NUM_BUCKETS(table)	((table)->num_buckets)
-#define TABLE_LOAD(table)		((table)->load)
-
 #define TABLE_BUCKET(table, code)					\
 	((table)->buckets[(code) % (table)->num_buckets])
-
-#define TABLE_NEXT(table, elm, field)					\
-	((elm) == NULL ? NULL : ((elm)->field.next != NULL ?		\
-		(elm)->field.next) : TABLE_BUCKET(table, elm->field.code + 1))
-
-#define TABLE_FIRST(table)						\
-	((table)->num_buckets == 0 ? NULL : (table)->buckets[0])
-
-/* UNSAFE ACROSS INSERT AND REMOVE */
-#define TABLE_FOREACH(var, table, field)				\
-	for (var = TABLE_FIRST(table);					\
-		var != NULL;						\
-		var = TABLE_NEXT(table, var, field))
-
-/* UNSAFE ACROSS TABLE_RESIZE */
-#define TABLE_FOREACH_SAFE(var, table, field, next)			\
-	for (var = TABLE_FIRST(table);					\
-		var != NULL						\
-		&& (next = TABLE_NEXT(table, var, field), 1);		\
-		var = next)
-
-#define TABLE_INIT(table)	do {					\
-		(table)->num_buckets = 0;				\
-		(table)->load = 0;					\
-		(table)->buckets = NULL;				\
-} while (0)
-
-#define TABLE_DESTROY(table)	do { 					\
-	if ((table) == NULL)						\
-		break;							\
-	(table)->num_buckets = 0;					\
-	(table)->load = 0;						\
-	free((table)->buckets);						\
-	(table)->buckets = NULL;					\
-} while (0)
 
 /* cmp(a, b) returns non-zero if a, b are not equal
  * hash(a) returns the hash code of a, if cmp(a, b) could return zero,
  * then hash(a) = hash(b)! */
-#define TABLE_GEN(attr, preifx, table_type, type, field, hash, cmp)	\
-attr type *								\
-preifx##next_equal(table_type *table, type *elm) {			\
-	type *key = elm;						\
-	if (elm == NULL)						\
-		return NULL;						\
-	elm = elm->field.next;						\
-	while (elm != NULL && cmp(key, elm))				\
-		next = elm->field.next;					\
-	return elm;							\
-}									\
-attr type *								\
-prefix##first_equal(table_type *table, type *key) {			\
-	type *next;							\
-	if (TABLE_NUM_BUCKETS(table) == 0)				\
-		return NULL;						\
-	next = TABLE_BUCKET(table, hash(key));				\
-	while (next != NULL && cmp(key, next))				\
-		next = next->field.next;				\
-	return next;							\
-}									\
-attr void								\
-prefix##push(table_type *table, type *elm) {				\
-	if (TABLE_NUM_BUCKETS(table) == 0)				\
-		abort();						\
-	elm->field.code = hash(elm);					\
-	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
-	TABLE_BUCKET(table, elm->field.code) = elm;			\
-	TABLE_LOAD(table) += 1;						\
-}									\
-attr void								\
-preifx##remove(table_type *table, type *elm) {				\
-	type *prev;							\
-	if (TABLE_NUM_BUCKETS(table) == 0)				\
-		return;							\
-	elm->field.code = hash(elm);					\
-	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
-	TABLE_BUCKET(table, elm->field.code) = elm;			\
-}									\
+#define TABLE_GEN(attr, prefix, table_type, type, field, hash, cmp)	\
 attr int								\
 prefix##resize(table_type *table, size_t num_buckets) {			\
 	size_t i;							\
@@ -117,13 +43,12 @@ prefix##resize(table_type *table, size_t num_buckets) {			\
 	if (new_table == NULL)						\
 		return -1;						\
 									\
-	for (i = 0; i < TABLE_NUM_BUCKETS(table); i++) {		\
+	for (i = 0; i < table->num_buckets; i++) {			\
 		cur = old_table[i];					\
 		while (cur != NULL) {					\
 			next = cur->field.next;				\
 			cur->field.next =				\
-				new_table[				\
-					cur->field.code % num_buckets];	\
+			  new_table[cur->field.code % num_buckets];	\
 			new_table[cur->field.code % num_buckets] = cur;	\
 			cur = next;					\
 		}							\
@@ -135,25 +60,128 @@ done:									\
 	table->num_buckets = num_buckets;				\
 	return 0;							\
 }									\
+attr int								\
+prefix##expand(table_type *table, size_t extra) {			\
+	size_t prime;							\
+	if (table->load > SIZE_MAX - extra)				\
+		return -1;						\
+	if (table->load + extra < table->num_buckets)			\
+		return 0;						\
+	prime = next_pow2_prime(table->load + extra);			\
+	if (prime < table->load + extra)				\
+		return -1;						\
+	return prefix##resize(table, prime);				\
+}									\
 attr void								\
-preifx##init(table_type *table, size_t size) {				\
-	TABLE_INIT(table);						\
+prefix##contract(table_type *table) {					\
+	size_t prime = pow2_prime(table->load);				\
+	if (prime < table->load)					\
+		return;							\
+	prefix##resize(table, prime);					\
+}									\
+attr void								\
+prefix##init(table_type *table, size_t size) {				\
+	table->num_buckets = 0;						\
+	table->load = 0;						\
+	table->buckets = NULL;						\
 	prefix##resize(table, size);					\
 }									\
 attr void								\
 prefix##destroy(table_type *table) {					\
-	TABLE_DESTROY(table);						\
+	if (table == NULL)						\
+		return;							\
+	table->num_buckets = 0;						\
+	table->load = 0;						\
+	free(table->buckets);						\
+	table->buckets = NULL;						\
 }									\
 attr type *								\
-preifx##pop(table_type *type, type *key) {				\
-	type *elm = prefix##first_equal(table, type *key);		\
-	preifx##remove(table, elm);					\
+prefix##first_equal(table_type *table, type *key) {			\
+	type *next;							\
+	if (table == NULL)						\
+		return NULL;						\
+	if (table == NULL || table->num_buckets == 0)			\
+		return NULL;						\
+	next = TABLE_BUCKET(table, hash(key));				\
+	while (next != NULL && cmp(next, key))				\
+		next = next->field.next;				\
+	return next;							\
+}									\
+attr type *								\
+prefix##next_equal(type *elm) {						\
+	type *key = elm;						\
+	if (elm == NULL)						\
+		return NULL;						\
+	elm = elm->field.next;						\
+	while (elm != NULL && cmp(elm, key))				\
+		elm = elm->field.next;					\
+	return elm;							\
+}									\
+attr type *								\
+prefix##first(table_type *table) {					\
+	size_t bucket;							\
+	if (table == NULL || table->num_buckets == 0)			\
+		return NULL;						\
+	for (bucket = 0; bucket < table->num_buckets; bucket++)		\
+		if (table->buckets[bucket] != NULL)			\
+			return table->buckets[bucket];			\
+	return NULL;							\
+}									\
+attr type *								\
+prefix##next(table_type *table, type *elm) {				\
+	size_t bucket;							\
+	if (elm == NULL)						\
+		return NULL;						\
+	if (elm->field.next != NULL)					\
+		return elm->field.next;					\
+	if (table == NULL || table->num_buckets == 0)			\
+		return NULL;						\
+	bucket = elm->field.code % table->num_buckets;			\
+	for (bucket++; bucket < table->num_buckets; bucket++)		\
+		if (table->buckets[bucket] != NULL)			\
+			return table->buckets[bucket];			\
+	return NULL;							\
+}									\
+attr void								\
+prefix##push(table_type *table, type *elm) {				\
+	if (elm == NULL)						\
+		return;							\
+	if (table == NULL || table->num_buckets == 0)			\
+		abort();						\
+	elm->field.code = hash(elm);					\
+	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
+	TABLE_BUCKET(table, elm->field.code) = elm;			\
+	table->load += 1;						\
+}									\
+attr void								\
+prefix##remove(table_type *table, type *elm) {				\
+	type *prev;							\
+	if (table == NULL || table->num_buckets == 0 || elm == NULL)	\
+		return;							\
+	prev = TABLE_BUCKET(table, elm->field.code);			\
+	if (prev == elm) {						\
+		TABLE_BUCKET(table, elm->field.code) =			\
+				elm->field.next;			\
+		return;							\
+	}								\
+	while (prev != NULL) {						\
+		if (prev->field.next == elm) {				\
+			prev->field.next = elm->field.next;		\
+			return;						\
+		}							\
+		prev = prev->field.next;				\
+	}								\
+}									\
+attr type *								\
+prefix##pop(table_type *table, type *key) {				\
+	type *elm = prefix##first_equal(table, key);			\
+	prefix##remove(table, elm);					\
 	return elm;							\
 }									\
 attr type *								\
 prefix##replace_first(table_type *table, type *elm) {			\
 	type *old = prefix##pop(table, elm);				\
-	preifx##push(table, elm);					\
+	prefix##push(table, elm);					\
 	return old;							\
 }									\
 attr void								\
