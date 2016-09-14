@@ -26,6 +26,8 @@ struct {								\
 #define TABLE_BUCKET(table, code)					\
 	((table)->buckets[(code) % (table)->num_buckets])
 
+#define TABLE_INITIAL_SIZE	(16)
+
 /* cmp(a, b) returns non-zero if a, b are not equal
  * hash(a) returns the hash code of a, if cmp(a, b) could return zero,
  * then hash(a) = hash(b)! */
@@ -142,16 +144,19 @@ prefix##next(table_type *table, type *elm) {				\
 			return table->buckets[bucket];			\
 	return NULL;							\
 }									\
-attr void								\
+attr int								\
 prefix##push(table_type *table, type *elm) {				\
 	if (elm == NULL)						\
-		return;							\
-	if (table == NULL || table->num_buckets == 0)			\
-		abort();						\
+		return 0;						\
+	if (table == NULL)						\
+		return -1;						\
+	if (table->num_buckets == 0 && prefix##expand(table, 1) < 0)	\
+		return -1;						\
 	elm->field.code = hash(elm);					\
 	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
 	TABLE_BUCKET(table, elm->field.code) = elm;			\
 	table->load += 1;						\
+	return 0;							\
 }									\
 attr void								\
 prefix##remove(table_type *table, type *elm) {				\
@@ -184,10 +189,10 @@ prefix##replace_first(table_type *table, type *elm) {			\
 	prefix##push(table, elm);					\
 	return old;							\
 }									\
-attr void								\
+attr int								\
 prefix##update(table_type *table, type *elm) {				\
 	prefix##remove(table, elm);					\
-	prefix##push(table, elm);					\
+	return prefix##push(table, elm);				\
 }
 
 #endif

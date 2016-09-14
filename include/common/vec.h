@@ -5,9 +5,12 @@
 #include <stdint.h>
 #include <string.h>
 
+/*for ssize_t*/
+#include <sys/types.h>
+
 #define VEC_INITIAL_SIZE	(8)
 
-#define VEC(name, type)				\
+#define FLAT_VEC(name, type)			\
 struct name {					\
 	size_t num_items, max_items;		\
 	type *items;				\
@@ -16,69 +19,52 @@ struct name {					\
 #define VEC_INITIALIZER				\
 	{0, 0, NULL}
 
-#define VEC_INIT(vec)	do {			\
-		(vec)->num_items = 0;		\
-		(vec)->max_items = 0;		\
-		(vec)->items = NULL;		\
-	}
-#define VEC_DESTROY(vec)	do {		\
-		(vec)->num_items = 0;		\
-		(vec)->max_items = 0;		\
-		free((vec)->items);		\
-		(vec)->items = NULL;		\
-	}
-
 #define VEC_COUNT(vec)		((vec)->num_items)
+#define VEC_SIZE(vec, type)	(VEC_COUNT(vec) * sizeof(type))
 #define VEC_CAPACITY(vec)	((vec)->max_items)
 #define VEC_EMPTY(vec)		(VEC_COUNT(vec) == 0)
 #define VEC_AT(vec, index)	((vec)->items[(index)])
 
-#define VEC_EXPAND(vec, size, type) (do {				\
-	size_t new_size = VEC_CAPACITY(vec);				\
-	type *items;							\
-									\
-	if (new_size >= size)						\
-		break;							\
-									\
-	if (new_size == 0)						\
-		new_size = VEC_INITIAL_SIZE;				\
-									\
-	while (new_size < size)						\
-		new_size *= 2;						\
-									\
-	items = realloc((vec)->items, new_size * sizeof(type));		\
-	if (items == NULL)						\
-		break;							\
-									\
-	VEC_CAPACITY(vec) = new_size;					\
-	(vec)->items = items;						\
-} while(0), (VEC_CAPACITY(vec) < new_capacity ? -1 : 0))
-
-#define VEC_COMPACT(vec, type) do {					\
-	VEC_CAPACITY(vec) = VEC_COUNT(vec);				\
-	type *items;							\
-									\
-	if (VEC_CAPACITY(vec) == 0) {					\
-		free(vec->items)					\
-		vec->items = NULL;					\
-		return;							\
-	}								\
-									\
-	items = realloc(vec->item, VEC_CAPACITY(vec) * sizeof(type));	\
-	if (items == NULL)						\
-		return;							\
-									\
-	vec->items = items;						\
-} while (0)
-
 #define VEC_GEN(attr, prefix, vec_type, type)				\
 attr int								\
-prefix##expand(vec_type *vec, size_t new_capacity) {			\
-	return VEC_EXPAND(vec, type);					\
+prefix##resize(vec_type *vec, size_t new_capacity) {			\
+	type *items;							\
+									\
+	if (new_capacity == VEC_CAPACITY(vec))				\
+		return 0;						\
+									\
+	if (new_capacity < VEC_COUNT(vec))				\
+		return -1;						\
+									\
+	items = realloc((vec)->items, new_capacity * sizeof(type));	\
+	if (items == NULL)						\
+		return -1;						\
+									\
+	VEC_CAPACITY(vec) = new_capacity;				\
+	(vec)->items = items;						\
+	return 0;							\
+}									\
+attr int								\
+prefix##expand(vec_type *vec, size_t extra_capacity) {			\
+	size_t new_capacity;						\
+	if (extra_capacity > SIZE_MAX / 2 - VEC_COUNT(vec))		\
+		return -1;						\
+									\
+	if (VEC_COUNT(vec) + extra_capacity <= VEC_CAPACITY(vec))	\
+		return 0;						\
+									\
+	new_capacity = VEC_CAPACITY(vec);				\
+	if (new_capacity == 0)						\
+		new_capacity = VEC_INITIAL_SIZE;			\
+									\
+	while (new_capacity < VEC_COUNT(vec) + extra_capacity)		\
+		new_capacity *= 2;					\
+									\
+	return prefix##resize(vec, new_capacity);			\
 }									\
 attr void								\
 prefix##compact(vec_type *vec) {					\
-	VEC_COMPACT(vec, type);						\
+	prefix##resize(vec, VEC_COUNT(vec));				\
 }									\
 attr void								\
 prefix##skip(vec_type *vec, size_t count) {				\
@@ -92,27 +78,29 @@ prefix##skip(vec_type *vec, size_t count) {				\
 }									\
 attr int								\
 prefix##shift(vec_type *vec, size_t count) {				\
-	size_t size = VEC_COUNT(vec) * sizeof(type);			\
-	if (prefix##expand(vec, count + VEC_COUNT(vec)) < 0)		\
+	if (prefix##expand(vec, count) < 0)				\
 		return -1;						\
-	memove(vec->items + count, vec->items, size);			\
+	memmove(vec->items + count, vec->items, VEC_SIZE(vec, type));	\
 	return 0;							\
 }									\
 attr int								\
 prefix##truncate(vec_type *vec, size_t count) {				\
-	if (prefix##expand(vec, count) < 0)				\
-		return -1;						\
+	if (count > VEC_COUNT(vec))					\
+		if (prefix##expand(vec, count - VEC_COUNT(vec)) < 0)	\
+			return -1;					\
 	VEC_COUNT(vec) = count;						\
+	return 0;							\
 }									\
-attr void								\
+attr int								\
 prefix##insert(vec_type *vec, size_t index, type value) {		\
 	size_t i;							\
-	if (prefix##expand(vec, VEC_COUNT(vec) + 1) < 0)		\
+	if (prefix##expand(vec, 1) < 0)					\
 		return -1;						\
 	for (i = VEC_COUNT(vec) + 1; i > index; i--)			\
 		VEC_AT(vec, i) = VEC_AT(vec, i - 1);			\
 	VEC_AT(vec, index) =  value;					\
 	VEC_COUNT(vec) += 1;						\
+	return 0;							\
 }									\
 attr void								\
 prefix##remove(vec_type *vec, size_t index) {				\
@@ -121,6 +109,29 @@ prefix##remove(vec_type *vec, size_t index) {				\
 	for (index += 1; index < VEC_COUNT(vec); index++)		\
 		VEC_AT(vec, index - 1) = VEC_AT(vec, index);		\
 	VEC_COUNT(vec) -= 1;						\
+}									\
+attr int								\
+prefix##push(vec_type *vec, type value) {				\
+	if (prefix##expand(vec, 1) < 0)					\
+		return -1;						\
+	VEC_AT(vec, VEC_COUNT(vec)) = value;				\
+	VEC_COUNT(vec) += 1;						\
+	return 0;							\
+}									\
+attr int								\
+prefix##peek(vec_type *vec, type *value) {				\
+	if (VEC_COUNT(vec) == 0)					\
+		return -1;						\
+	if (value != NULL)						\
+		*value = VEC_AT(vec, 0);				\
+	return 0;							\
+}									\
+attr int								\
+prefix##pop(vec_type *vec, type *value) {				\
+	if (prefix##peek(vec, value) < 0)				\
+		return -1;						\
+	prefix##remove(vec, 0);						\
+	return 0;							\
 }									\
 attr void								\
 prefix##swap(vec_type *vec, size_t i, size_t j) {			\
@@ -132,15 +143,20 @@ attr void								\
 prefix##reverse(vec_type *vec) {					\
 	ssize_t i = 0, j = VEC_COUNT(vec) - 1;				\
 	while (i < j)							\
-		prefix##swap(i++, j--);					\
+		prefix##swap(vec, i++, j--);				\
 }									\
 attr void								\
 prefix##init(vec_type *vec) {						\
-	VEC_INIT(vec);							\
+	(vec)->num_items = 0;						\
+	(vec)->max_items = 0;						\
+	(vec)->items = NULL;						\
 }									\
 attr void								\
 preifx##destroy(vec_type *vec) {					\
-	VEC_DESTROY(vec);						\
+	(vec)->num_items = 0;						\
+	(vec)->max_items = 0;						\
+	free((vec)->items);						\
+	(vec)->items = NULL;						\
 }
 
 #endif

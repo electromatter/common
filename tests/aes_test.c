@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <assert.h>
 
-#include "util.h"
+#include <common/util.h>
 
 #if 0
 void *worker(void *arg)
@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 }
 #endif
 
-#include "aes.h"
+#include <common/aes.h>
 
 #if 0
 int main(int argc, char **argv)
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 }
 #elif 0
 
-#include "string.h"
+#include <string.h>
 
 int main(int argc, char **argv)
 {
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "aes.h"
+#include <common/aes.h>
 
 int main(int argc, char **argv)
 {
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 
 #else
 
-#include "sha1.h"
+#include <common/sha1.h>
 
 int main(int argc, char **argv)
 {

@@ -47,15 +47,17 @@ entity_t *entity_new(entity_table_t *tab, uint64_t id)
 	if (entity_get(tab, id) != NULL)
 		return NULL;
 
-	if (et_expand(tab, 1) < 0)
-		return NULL;
-
 	ent = malloc(sizeof(*ent));
 	if (ent == NULL)
 		return NULL;
 
 	ent->id = id;
-	et_push(tab, ent);
+
+	if (et_push(tab, ent) < 0) {
+		free(ent);
+		return NULL;
+	}
+
 	return ent;
 }
 
