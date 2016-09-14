@@ -1,3 +1,4 @@
+/*TODO base on vec.h, VEC_TABLE*/
 #ifndef COMMON_TABLE_H
 #define COMMON_TABLE_H
 

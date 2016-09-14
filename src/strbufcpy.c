@@ -18,8 +18,8 @@ int bufstrcpy(char *dest, size_t destsize, const char *src, size_t srcsize)
 	size_t size = destsize - 1;
 	if (srcsize < size)
 		size = srcsize;
-	dest[destsize - 1] = 0;
-	strncpy(dest, src, size);
+	memcpy(dest, src, size);
+	dest[size] = 0;
 	return size == srcsize ? 0 : -1;
 }
 
