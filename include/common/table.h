@@ -151,7 +151,7 @@ prefix##push(table_type *table, type *elm) {				\
 		return 0;						\
 	if (table == NULL)						\
 		return -1;						\
-	if (table->num_buckets == 0 && prefix##expand(table, 1) < 0)	\
+	if (prefix##expand(table, 1) < 0 && table->num_buckets == 0)	\
 		return -1;						\
 	elm->field.code = hash(elm);					\
 	elm->field.next = TABLE_BUCKET(table, elm->field.code);		\
