@@ -101,11 +101,38 @@ prefix##pop(heap_type *heap, type *value) {				\
 	return 0;							\
 }
 
+#define BASE_HEAP_PROTOTYPE(attr, prefix, heap_type, type)		\
+VEC_GEN(attr, prefix##_vec_, heap_type, type)				\
+attr void								\
+prefix##init(heap_type *heap);						\
+attr void								\
+prefix##destroy(heap_type *heap);					\
+attr void								\
+prefix##siftup(heap_type *heap, size_t index);				\
+attr void								\
+prefix##siftdown(heap_type *heap, size_t index);			\
+attr void								\
+prefix##update(heap_type *heap, size_t index);				\
+attr int								\
+prefix##peek(heap_type *heap, type *value);				\
+attr int								\
+prefix##push(heap_type *heap, type value);				\
+attr void								\
+prefix##remove(heap_type *heap, size_t index);				\
+attr int								\
+prefix##pop(heap_type *heap, type *value);
+
 #define OHEAP_GEN(attr, prefix, heap_type, type, test, update_index)	\
 	BASE_HEAP_GEN(attr, prefix, heap_type, type*, test, update_index)
 
+#define OHEAP_PROTOTYPE(attr, prefix, heap_type, type)			\
+	BASE_HEAP_PROTOTYPE(attr, prefix, heap_type, type*)
+
 #define HEAP_GEN(attr, prefix, heap_type, type, test)			\
 	BASE_HEAP_GEN(attr, prefix, heap_type, type, test, HEAP_UPDATE_NOP)
+
+#define HEAP_PROTOTYPE(attr, prefix, heap_type, type)			\
+	BASE_HEAP_PROTOTYPE(attr, prefix, heap_type, type)
 
 #endif
 

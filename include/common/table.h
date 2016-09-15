@@ -189,5 +189,36 @@ prefix##update(table_type *table, type *elm) {				\
 	return prefix##push(table, elm);				\
 }
 
+#define TABLE_PROTOTYPE(attr, prefix, table_type, type)			\
+attr int								\
+prefix##resize(table_type *table, size_t num_buckets);			\
+attr int								\
+prefix##expand(table_type *table, size_t extra);			\
+attr void								\
+prefix##contract(table_type *table);					\
+attr void								\
+prefix##init(table_type *table);					\
+attr void								\
+prefix##destroy(table_type *table);					\
+attr type *								\
+prefix##first_equal(table_type *table, type *key);			\
+attr type *								\
+prefix##next_equal(type *elm);						\
+attr type *								\
+prefix##first(table_type *table);					\
+attr type *								\
+prefix##next(table_type *table, type *elm);				\
+attr int								\
+prefix##push(table_type *table, type *elm);				\
+attr void								\
+prefix##remove(table_type *table, type *elm);				\
+attr type *								\
+prefix##pop(table_type *table, type *key);				\
+attr type *								\
+prefix##replace_first(table_type *table, type *elm);			\
+attr int								\
+prefix##update(table_type *table, type *elm);
+
+
 #endif
 

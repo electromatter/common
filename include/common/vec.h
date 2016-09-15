@@ -24,6 +24,7 @@ struct name {					\
 #define VEC_CAPACITY(vec)	((vec)->max_items)
 #define VEC_EMPTY(vec)		(VEC_COUNT(vec) == 0)
 #define VEC_AT(vec, index)	((vec)->items[(index)])
+#define VEC_ITEMS(vec)		((vec)->items)
 
 #define VEC_GEN(attr, prefix, vec_type, type)				\
 attr int								\
@@ -159,6 +160,58 @@ prefix##destroy(vec_type *vec) {					\
 	(vec)->max_items = 0;						\
 	free((vec)->items);						\
 	(vec)->items = NULL;						\
+}									\
+attr int								\
+prefix##append(vec_type *vec, type *items, size_t count) {		\
+	if (prefix##expand(vec, count) < 0)				\
+		return -1;						\
+	memcpy(vec->items+ vec->num_items, items, count * sizeof(type));\
+	VEC_COUNT(vec) += count;					\
+	return 0;							\
+}									\
+attr int								\
+prefix##prepend(vec_type *vec, type *items, size_t count) {		\
+	if (prefix##shift(vec, count) < 0)				\
+		return -1;						\
+	memcpy(vec->items, items, count * sizeof(type));		\
+	return 0;							\
 }
 
+#define VEC_PROTOTYPE(attr, prefix, vec_type, type)			\
+attr int								\
+prefix##resize(vec_type *vec, size_t new_capacity);			\
+attr int								\
+prefix##expand(vec_type *vec, size_t extra_capacity);			\
+attr void								\
+prefix##compact(vec_type *vec);						\
+attr void								\
+prefix##skip(vec_type *vec, size_t count);				\
+attr int								\
+prefix##shift(vec_type *vec, size_t count);				\
+attr int								\
+prefix##truncate(vec_type *vec, size_t count);				\
+attr int								\
+prefix##insert(vec_type *vec, size_t index, type value);		\
+attr void								\
+prefix##remove(vec_type *vec, size_t index);				\
+attr int								\
+prefix##push(vec_type *vec, type value);				\
+attr int								\
+prefix##peek(vec_type *vec, type *value);				\
+attr int								\
+prefix##pop(vec_type *vec, type *value);				\
+attr void								\
+prefix##swap(vec_type *vec, size_t i, size_t j);			\
+attr void								\
+prefix##reverse(vec_type *vec);						\
+attr void								\
+prefix##init(vec_type *vec);						\
+attr void								\
+prefix##destroy(vec_type *vec);						\
+attr int								\
+prefix##append(vec_type *vec, type *items, size_t count);		\
+attr int								\
+prefix##prepend(vec_type *vec, type *items, size_t count);
+
 #endif
+
