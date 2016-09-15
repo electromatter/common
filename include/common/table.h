@@ -233,7 +233,7 @@ symbol(prefix##push)							\
 symbol(prefix##remove)							\
 symbol(prefix##pop)							\
 symbol(prefix##replace_first)						\
-symbol(prefix##update(table_type *table, type *elm)			\
+symbol(prefix##update)
 
 #endif
 
