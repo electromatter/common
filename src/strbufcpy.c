@@ -35,6 +35,15 @@ int bufcpy(void *dest, size_t destsize, const void *src, size_t srcsize)
 	return 0;
 }
 
+char *strdup2(const char *str)
+{
+	char *buf = malloc(strlen(str) + 1);
+	if (buf == NULL)
+		return NULL;
+	strcpy(buf, str);
+	return buf;
+}
+
 char *bufstrdup(const char *src, size_t srcsize)
 {
 	char *buf;

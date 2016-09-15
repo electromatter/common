@@ -70,6 +70,7 @@ struct fbuf *tempbuf(void);
 
 int strbufcpy(char *dest, size_t destsize, const char *src);
 int bufstrcpy(char *dest, size_t destsize, const char *src, size_t srcsize);
+char *strdup2(const char *str);
 int bufcpy(void *dest, size_t destsize, const void *src, size_t srcsize);
 char *bufstrdup(const char *src, size_t srcsize);
 void *bufdup(const void *src, size_t srcsize);
