@@ -219,6 +219,21 @@ prefix##replace_first(table_type *table, type *elm);			\
 attr int								\
 prefix##update(table_type *table, type *elm);
 
+#define TABLE_SYMBOLS(prefix, symbol)					\
+symbol(prefix##resize)							\
+symbol(prefix##expand)							\
+symbol(prefix##contract)						\
+symbol(prefix##init)							\
+symbol(prefix##destroy)							\
+symbol(prefix##first_equal)						\
+symbol(prefix##next_equal)						\
+symbol(prefix##first)							\
+symbol(prefix##next)							\
+symbol(prefix##push)							\
+symbol(prefix##remove)							\
+symbol(prefix##pop)							\
+symbol(prefix##replace_first)						\
+symbol(prefix##update(table_type *table, type *elm)			\
 
 #endif
 

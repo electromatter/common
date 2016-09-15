@@ -213,5 +213,24 @@ prefix##append(vec_type *vec, type *items, size_t count);		\
 attr int								\
 prefix##prepend(vec_type *vec, type *items, size_t count);
 
+#define VEC_SYMBOLS(prefix, symbol)					\
+symbol(prefix##resize)							\
+symbol(prefix##expand)							\
+symbol(prefix##compact)							\
+symbol(prefix##skip)							\
+symbol(prefix##shift)							\
+symbol(prefix##truncate)						\
+symbol(prefix##insert)							\
+symbol(prefix##remove)							\
+symbol(prefix##push)							\
+symbol(prefix##peek)							\
+symbol(prefix##pop)							\
+symbol(prefix##swap)							\
+symbol(prefix##reverse)							\
+symbol(prefix##init)							\
+symbol(prefix##destroy)							\
+symbol(prefix##append)							\
+symbol(prefix##prepend)
+
 #endif
 

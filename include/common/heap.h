@@ -122,6 +122,18 @@ prefix##remove(heap_type *heap, size_t index);				\
 attr int								\
 prefix##pop(heap_type *heap, type *value);
 
+#define HEAP_SYMBOLS(prefix, symbol)					\
+VEC_SYMBOLS(prefix##_vec_, symbol)					\
+symbol(prefix##init)							\
+symbol(prefix##destroy)							\
+symbol(prefix##siftup)							\
+symbol(prefix##siftdown)						\
+symbol(prefix##update)							\
+symbol(prefix##peek)							\
+symbol(prefix##push)							\
+symbol(prefix##remove)							\
+symbol(prefix##pop)
+
 #define OHEAP_GEN(attr, prefix, heap_type, type, test, update_index)	\
 	BASE_HEAP_GEN(attr, prefix, heap_type, type*, test, update_index)
 
