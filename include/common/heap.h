@@ -102,8 +102,8 @@ prefix##pop(heap_type *heap, type *value) {				\
 }									\
 attr void								\
 prefix##heapify(heap_type *heap) {					\
-	size_t i = VEC_COUNT(heap);					\
-	while (i --> 0)							\
+	size_t i;							\
+	for (i = 0; i < VEC_COUNT(heap); i++)				\
 		prefix##siftup(heap, i);				\
 }
 
