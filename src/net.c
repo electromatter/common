@@ -62,7 +62,7 @@ int make_connection(const struct sockaddr *addr, socklen_t len)
 
 	if (set_nonblock(fd, 1) < 0)
 		goto err_fd;
-	
+
 	return fd;
 
 err_fd:

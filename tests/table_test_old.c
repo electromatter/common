@@ -56,7 +56,7 @@ struct entity *entity_new(struct entity_table *tab, uint64_t id)
 
 	if (entity_get(tab, id) != NULL)
 		return NULL;
-       
+
 	ent = malloc(sizeof(*ent));
 	if (ent == NULL)
 		return NULL;
@@ -75,7 +75,7 @@ struct entity *entity_new(struct entity_table *tab, uint64_t id)
 void entity_free(struct entity_table *tab, uint64_t id)
 {
 	struct entity *ent = entity_get(tab, id);
-	
+
 	if (ent == NULL)
 		return;
 
@@ -138,7 +138,7 @@ int main(void)
 
 	murmur3_seed = 0xdeedbeef;
 
-  	if (entity_table_init(&tab))
+	if (entity_table_init(&tab))
 		return 1;
 
 #if 0

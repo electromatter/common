@@ -12,7 +12,7 @@
 /* test(parent, child)
  * must return non-zero if the heap property is satisfied,
  * and zero if it is violated.
- * 
+ *
  * for min-heaps: parent <= child
  * and max-heaps: parent >= child
  *
