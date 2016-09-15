@@ -160,22 +160,16 @@ prefix##push(table_type *table, type *elm) {				\
 }									\
 attr void								\
 prefix##remove(table_type *table, type *elm) {				\
-	type *prev;							\
+	type **ptr;							\
 	if (table == NULL || table->num_buckets == 0 || elm == NULL)	\
 		return;							\
-	prev = TABLE_BUCKET(table, elm->field.code);			\
-	if (prev == elm) {						\
-		TABLE_BUCKET(table, elm->field.code) =			\
-				elm->field.next;			\
-		return;							\
-	}								\
-	while (prev != NULL) {						\
-		if (prev->field.next == elm) {				\
-			prev->field.next = elm->field.next;		\
+	ptr = &TABLE_BUCKET(table, elm->field.code);			\
+	while (*ptr != elm) {						\
+		if ((*ptr)->field.next == NULL)				\
 			return;						\
-		}							\
-		prev = prev->field.next;				\
+		ptr = &(*ptr)->field.next;				\
 	}								\
+	*ptr = elm->field.next;						\
 }									\
 attr type *								\
 prefix##pop(table_type *table, type *key) {				\
