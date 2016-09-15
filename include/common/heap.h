@@ -99,6 +99,12 @@ prefix##pop(heap_type *heap, type *value) {				\
 		return -1;						\
 	prefix##remove(heap, 0);					\
 	return 0;							\
+}									\
+attr void								\
+prefix##heapify(heap_type *heap) {					\
+	size_t i = VEC_COUNT(heap);					\
+	while (i --> 0)							\
+		prefix##siftup(heap, i);				\
 }
 
 #define BASE_HEAP_PROTOTYPE(attr, prefix, heap_type, type)		\
@@ -120,7 +126,9 @@ prefix##push(heap_type *heap, type value);				\
 attr void								\
 prefix##remove(heap_type *heap, size_t index);				\
 attr int								\
-prefix##pop(heap_type *heap, type *value);
+prefix##pop(heap_type *heap, type *value);				\
+attr void								\
+prefix##heapify(heap_type *heap);					\
 
 #define HEAP_SYMBOLS(prefix, symbol)					\
 VEC_SYMBOLS(prefix##_vec_, symbol)					\
@@ -132,7 +140,8 @@ symbol(prefix##update)							\
 symbol(prefix##peek)							\
 symbol(prefix##push)							\
 symbol(prefix##remove)							\
-symbol(prefix##pop)
+symbol(prefix##pop)							\
+symbol(prefix##heapify)
 
 #define OHEAP_GEN(attr, prefix, heap_type, type, test, update_index)	\
 	BASE_HEAP_GEN(attr, prefix, heap_type, type*, test, update_index)
