@@ -27,7 +27,7 @@ struct {								\
 #define TABLE_BUCKET(table, code)					\
 	((table)->buckets[(code) % (table)->num_buckets])
 
-#define TABLE_INITIAL_SIZE	(16)
+#define TABLE_INITIAL_SIZE	(17)
 
 /* cmp(a, b) returns non-zero if a, b are not equal
  * hash(a) returns the hash code of a, if cmp(a, b) could return zero,
