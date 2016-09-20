@@ -21,7 +21,13 @@ static inline size_t round_down_pow2(size_t index)
  * TEST(heap, parent_index, child_index) - returns zero if violated
  *	for min-heaps: parent <= child
  *	for max-heaps: parent >= child
- * POP(heap) - removes the last item from the container and returns it */
+ * POP(heap) - removes the last item from the container and returns it
+ *
+ * siftup - use when appending an item to the heap
+ * sift - use when one item changes and needs to move
+ * heapify - rebuilds the entire heap
+ * remove - removes an item at index returns 0 if index was not in the heap
+ */
 #define GEN_HEAP_BASE(attr, prefix, heap_type, type, COUNT, SWAP,	\
 			TEST, POP)					\
 attr void								\
@@ -52,6 +58,11 @@ prefix##siftdown(heap_type *heap, size_t index) {			\
 	}								\
 }									\
 attr void								\
+prefix##sift(heap_type *heap, size_t index) {				\
+	prefix##siftup(heap, index);					\
+	prefix##siftdown(heap, index);					\
+}									\
+attr void								\
 prefix##heapify(heap_type *heap) {					\
 	size_t index = COUNT(heap);					\
 	if (index <= 1)							\
@@ -60,18 +71,19 @@ prefix##heapify(heap_type *heap) {					\
 	while (index --> 0)						\
 		prefix##siftdown(heap, index);				\
 }									\
-attr void								\
+attr int								\
 prefix##remove(heap_type *heap, size_t index, type *val) {		\
 	size_t last = COUNT(heap) - 1;					\
-	assert(index <= last);						\
+	if (index > last)						\
+		return 0;						\
 	if (index != last)						\
 		SWAP(heap, index, last);				\
 	if (val != NULL)						\
 		*val = POP(heap);					\
 	else								\
 		POP(heap);						\
-	prefix##siftup(heap, index);					\
-	prefix##siftdown(heap, index);					\
+	prefix##sift(heap, index);					\
+	return 1;							\
 }
 
 #endif
