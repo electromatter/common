@@ -28,7 +28,7 @@ static inline size_t round_down_pow2(size_t index)
  * heapify - rebuilds the entire heap
  * remove - removes an item at index returns 0 if index was not in the heap
  */
-#define GEN_HEAP_BASE(attr, prefix, heap_type, type, COUNT, SWAP,	\
+#define HEAP_GEN(attr, prefix, heap_type, type, COUNT, SWAP,		\
 			TEST, POP)					\
 attr void								\
 prefix##siftup(heap_type *heap, size_t index) {				\
@@ -51,7 +51,7 @@ prefix##siftdown(heap_type *heap, size_t index) {			\
 			if (!TEST(heap, child, child + 1))		\
 				child += 1;				\
 		}							\
-		if (test(heap, index, child))				\
+		if (TEST(heap, index, child))				\
 			break;						\
 		SWAP(heap, index, child);				\
 		index = child;						\
@@ -81,7 +81,7 @@ prefix##remove(heap_type *heap, size_t index, type *val) {		\
 	if (val != NULL)						\
 		*val = POP(heap);					\
 	else								\
-		POP(heap);						\
+		(void)POP(heap);					\
 	prefix##sift(heap, index);					\
 	return 1;							\
 }
